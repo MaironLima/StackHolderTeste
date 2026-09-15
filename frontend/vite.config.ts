@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
 
   const devPort = Number(env.PORT) || 5173;
   // Endereço do Flask local (python main.py) usado só em desenvolvimento.
-  const flaskTarget = env.VITE_API_URL || "http://localhost:5000";
+  const flaskTarget = env.VITE_API_URL;
 
   return {
     plugins: [react(), tailwindcss()],
