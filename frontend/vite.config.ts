@@ -21,12 +21,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: devPort,
       proxy: {
-        // Em dev, tudo que for /pergunta é redirecionado para o Flask local,
-        // evitando CORS. Em produção o próprio Flask serve o build e essa
-        // rota já existe na mesma origem, então o proxy não é necessário.
-        "/pergunta": {
+        "/api": {
           target: flaskTarget,
           changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ""),
         },
       },
     },
