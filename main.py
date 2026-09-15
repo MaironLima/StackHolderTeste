@@ -6,7 +6,7 @@ from chatbot import gerar_feedback, gerar_resposta
 from datetime import datetime
 import random
 
-app = Flask(__name__, static_folder="frontend/dist", static_url_path="")
+app = Flask(__name__, static_folder="public", static_url_path="")
 app.secret_key = "um_segredo_aleatorio_para_sessoes"  # necessário para usar session
 
 arquivos_pdf = ["requisitos.pdf", "requisitos2.pdf", "requisitos3.pdf"]
