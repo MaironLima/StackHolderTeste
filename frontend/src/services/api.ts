@@ -4,11 +4,11 @@ import type { PerguntaResponse } from "@/types/chat";
 /**
  * Em desenvolvimento, o Vite faz proxy de "/api/pergunta" para o Flask local
  * (ver vite.config.ts), então baseURL pode ficar vazia.
- * Em produção, o próprio Flask serve o build do front e responde nessa
+ * Em produção, o próprio backend serve o build do front e responde nessa
  * mesma origem — também não precisa de baseURL.
  *
  * IMPORTANTE: nenhuma chave de API (OPENAI_API_KEY) circula por aqui.
- * A chamada real à OpenAI acontece só no backend Flask (chatbot.py).
+ * A chamada real à OpenAI acontece só no backend (chatbot.py).
  */
 export const api = axios.create({
   baseURL: "",
@@ -36,4 +36,8 @@ export async function solicitarFeedback(): Promise<PerguntaResponse> {
   const body = new URLSearchParams({ pergunta: "sair" });
   const { data } = await api.post<PerguntaResponse>("/api/pergunta", body);
   return data;
+}
+
+export async function iniciarNovaConversa(): Promise<void> {
+  await api.post("/api/nova-conversa");
 }
