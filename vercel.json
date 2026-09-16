@@ -2,11 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd frontend && npm ci && npm run build",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/pergunta.py": {
+      "includeFiles": "pdfs/**"
+    }
+  },
   "rewrites": [
-    {
-      "source": "/api/nova-conversa",
-      "destination": "/api/nova_conversa"
-    },
     {
       "source": "/api/:path*",
       "destination": "/:path*"

@@ -36,12 +36,9 @@ arquivos_pdf = [
 ]
 
 def carregar_contexto():
-    # Se já tem um PDF escolhido na sessão, mantém o mesmo
     if "caminho_pdf" not in session:
         session["caminho_pdf"] = random.choice(arquivos_pdf)
-        # Caminho absoluto: o sistema de arquivos da função é somente
-        # leitura, mas ler os PDFs incluídos no deploy funciona normalmente.
-        caminho_absoluto = str(ROOT_DIR / session["caminho_pdf"])
+        caminho_absoluto = str(ROOT_DIR / "pdfs" / session["caminho_pdf"])
         session["contexto"] = extrair_texto_pdf(caminho_absoluto)
     return session["contexto"]
 
