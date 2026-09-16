@@ -41,9 +41,6 @@ def index(path):
 
 @app.route('/pergunta', methods=['POST'])
 def pergunta():
-    if request.form.get("acao") == "nova-conversa":
-        session.clear()
-        return jsonify({"mensagem": "Nova conversa iniciada."})
 
     contexto = carregar_contexto()
     pergunta = request.form['pergunta']
