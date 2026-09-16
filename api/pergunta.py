@@ -10,6 +10,7 @@ import random
 import sys
 from datetime import datetime
 from pathlib import Path
+import os
 
 # Permite importar chatbot.py e process_pdf.py, que ficam na raiz do
 # repositório (um nível acima da pasta api/).
@@ -25,8 +26,14 @@ app = Flask(__name__)
 app.secret_key = "um_segredo_aleatorio_para_sessoes"  # necessário para usar session
 
 # Lista de PDFs disponíveis (mesmos arquivos da raiz do repositório)
-arquivos_pdf = ["requisitos.pdf", "requisitos2.pdf", "requisitos3.pdf"]
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PDF_DIR = os.path.join(BASE_DIR, "pdfs")
 
+arquivos_pdf = [
+    arquivo
+    for arquivo in os.listdir(PDF_DIR)
+    if arquivo.lower().endswith(".pdf")
+]
 
 def carregar_contexto():
     # Se já tem um PDF escolhido na sessão, mantém o mesmo
