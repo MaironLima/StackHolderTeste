@@ -41,18 +41,25 @@ def index(path):
 
 @app.route('/pergunta', methods=['POST'])
 def pergunta():
-
     contexto = carregar_contexto()
-    pergunta = request.form['pergunta']
+
+    if request.is_json:
+        pergunta = request.json.get('pergunta', '')
+    else:
+        pergunta = request.form.get('pergunta', '')
+
+    if not pergunta:
+        return jsonify({'erro': "Campo 'pergunta' não encontrado"}), 400
 
     if pergunta.lower().strip() == "sair":
         conversa = session.get("historico", [])
         resposta = gerar_feedback(conversa)
     else:
         resposta = gerar_resposta(pergunta, contexto)
-        historico = session.get("historico", [])
-        historico.append(f"Aluno: {pergunta}\nStakeholder: {resposta}")
-        session["historico"] = historico
+
+    historico = session.get("historico", [])
+    historico.append(f"Aluno: {pergunta}\nStakeholder: {resposta}")
+    session["historico"] = historico
 
     data_hora = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
     return jsonify({'resposta': resposta, 'data_hora': data_hora})

@@ -39,6 +39,5 @@ export async function solicitarFeedback(): Promise<PerguntaResponse> {
 }
 
 export async function iniciarNovaConversa(): Promise<void> {
-  const body = new URLSearchParams({ acao: "nova-conversa" });
-  await api.post("/api/pergunta", body);
+  await api.post("/api/nova-conversa");
 }
