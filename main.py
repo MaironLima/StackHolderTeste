@@ -39,8 +39,12 @@ def index(path):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, 'index.html')
 
-@app.route('/pergunta', methods=['POST'])
+@app.route('/api/pergunta', methods=['POST'])
 def pergunta():
+    if request.form.get("acao") == "nova-conversa":
+        session.clear()
+        return jsonify({"mensagem": "Nova conversa iniciada."})
+
     contexto = carregar_contexto()
     pergunta = request.form['pergunta']
 
@@ -56,7 +60,7 @@ def pergunta():
     data_hora = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
     return jsonify({'resposta': resposta, 'data_hora': data_hora})
 
-@app.route("/nova-conversa", methods=["POST"])
+@app.route("api/nova-conversa", methods=["POST"])
 def nova_conversa():
     session.clear()
     return jsonify({"mensagem": "Nova conversa iniciada."})
