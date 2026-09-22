@@ -1,21 +1,14 @@
 import { ArrowUp } from "lucide-react";
-import {
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { FeedbackButton } from "./FeedbackButton";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 interface ChatInputProps {
   onSend: (pergunta: string) => void;
-  onFeedback: () => void;
   disabled?: boolean;
 }
 
 const MAX_HEIGHT_PX = 200;
 
-export function ChatInput({ onSend, onFeedback, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -54,7 +47,6 @@ export function ChatInput({ onSend, onFeedback, disabled }: ChatInputProps) {
             placeholder="Pergunte algo ao stakeholder…"
             className="max-h-[200px] flex-1 resize-none bg-transparent py-1.5 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none"
           />
-          <FeedbackButton onClick={onFeedback} disabled={disabled} />
           <button
             type="button"
             onClick={handleSubmit}

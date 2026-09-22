@@ -1,0 +1,16 @@
+diff --git a/adk-service/requirements.txt b/adk-service/requirements.txt
+index 877d08a..198f046 100644
+--- a/adk-service/requirements.txt
++++ b/adk-service/requirements.txt
+@@ -1,6 +1,6 @@
+-fastapi==0.115.0
+-uvicorn[standard]==0.30.6
+ google-adk==2.9.2
+-litellm==1.48.0
+-python-dotenv==1.0.1
+-pydantic==2.9.2
++fastapi>=0.133
++uvicorn[standard]>=0.30
++litellm>=1.55.0
++python-dotenv>=1.0.1
++pydantic>=2.9.2

@@ -174,3 +174,14 @@ cython_debug/
 .pypirc
 
 .env
+
+# Node (backend/, frontend/)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Prisma
+backend/prisma/*.db
+
+# PDFs enviados localmente quando STORAGE_DRIVER=local (backend/)
+backend/uploads/
