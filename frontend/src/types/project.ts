@@ -12,7 +12,9 @@ export interface AdminProject extends Project {
 export interface UnansweredQuestion {
   id: string;
   question: string;
+  answer: string | null;
   createdAt: string;
+  answeredAt: string | null;
   reviewed: boolean;
   project: { id: string; title: string };
   user: { id: string; email: string } | null;

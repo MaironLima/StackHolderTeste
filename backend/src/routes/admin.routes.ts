@@ -3,10 +3,11 @@ import multer from "multer";
 import { asyncHandler } from "../utils/asyncHandler";
 import { requireAdmin, requireAuth } from "../middleware/auth";
 import {
+  answerQuestion,
   createProject,
+  deleteQuestion,
   listAdminProjects,
   listUnansweredQuestions,
-  markQuestionReviewed,
 } from "../controllers/admin.controller";
 
 // Arquivo fica só em memória (buffer) — nunca é gravado em disco local,
@@ -30,4 +31,5 @@ adminRouter.use(requireAuth, requireAdmin);
 adminRouter.get("/projects", asyncHandler(listAdminProjects));
 adminRouter.post("/projects", upload.single("pdf"), asyncHandler(createProject));
 adminRouter.get("/unanswered-questions", asyncHandler(listUnansweredQuestions));
-adminRouter.patch("/unanswered-questions/:id/reviewed", asyncHandler(markQuestionReviewed));
+adminRouter.patch("/unanswered-questions/:id/answer", asyncHandler(answerQuestion));
+adminRouter.delete("/unanswered-questions/:id", asyncHandler(deleteQuestion));

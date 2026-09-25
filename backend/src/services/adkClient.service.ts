@@ -8,6 +8,7 @@ export interface AdkHistoryTurn {
 export interface AdkAnswerResponse {
   answer: string;
   grounded: boolean;
+  coveredByReport: boolean;
 }
 
 // Chama o microserviço Python que roda o pipeline de agentes do ADK
@@ -29,4 +30,21 @@ export async function askAdkAgent(params: {
   }
 
   return (await response.json()) as AdkAnswerResponse;
+}
+
+// Chama o agente de feedback pedagógico (avaliação da entrevista até agora).
+export async function askAdkFeedback(history: AdkHistoryTurn[]): Promise<string> {
+  const response = await fetch(`${env.adkServiceUrl}/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ history }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Microserviço ADK retornou ${response.status}: ${text}`);
+  }
+
+  const data = (await response.json()) as { feedback: string };
+  return data.feedback;
 }

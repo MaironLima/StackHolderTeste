@@ -52,11 +52,38 @@ export async function listUnansweredQuestions(req: Request, res: Response) {
   res.json(questions);
 }
 
-export async function markQuestionReviewed(req: Request, res: Response) {
+const answerQuestionSchema = z.object({ answer: z.string().trim().min(1) });
+
+// O admin responde a pergunta que o relatório não cobria — a resposta é
+// anexada ao reportText do projeto, então a próxima vez que alguém
+// perguntar algo parecido, o stakeholder já vai ter essa informação.
+export async function answerQuestion(req: Request, res: Response) {
   const { id } = req.params;
-  const question = await prisma.unansweredQuestion.update({
-    where: { id },
-    data: { reviewed: true },
-  });
-  res.json(question);
+  const { answer } = answerQuestionSchema.parse(req.body);
+
+  const question = await prisma.unansweredQuestion.findUnique({ where: { id } });
+  if (!question) throw new HttpError(404, "Pergunta não encontrada");
+
+  const complemento = `\n\n[Complemento adicionado pelo admin]\nPergunta: ${question.question}\nResposta: ${answer}`;
+  const project = await prisma.project.findUniqueOrThrow({ where: { id: question.projectId } });
+
+  const updated = await prisma.$transaction([
+    prisma.project.update({
+      where: { id: question.projectId },
+      data: { reportText: project.reportText + complemento },
+    }),
+    prisma.unansweredQuestion.update({
+      where: { id },
+      data: { answer, reviewed: true, answeredAt: new Date() },
+    }),
+  ]);
+
+  res.json(updated[1]);
+}
+
+// Descarta a pergunta sem gerar nenhum contexto novo pro projeto.
+export async function deleteQuestion(req: Request, res: Response) {
+  const { id } = req.params;
+  await prisma.unansweredQuestion.delete({ where: { id } });
+  res.status(204).send();
 }

@@ -1,4 +1,4 @@
-export type MessageRole = "USER" | "STAKEHOLDER";
+export type MessageRole = "USER" | "STAKEHOLDER" | "FEEDBACK";
 
 export interface ChatMessage {
   id: string;
@@ -15,6 +15,6 @@ export interface ChatResponse {
 
 export interface SendMessageResponse {
   resposta: string;
-  grounded: boolean;
+  grounded: boolean | null;
   dataHora: string;
 }

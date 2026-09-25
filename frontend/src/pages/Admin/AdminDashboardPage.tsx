@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   criarProjeto,
+  deletarPergunta,
   listarPerguntasNaoRespondidas,
   listarProjetosAdmin,
-  marcarPerguntaRevisada,
+  responderPergunta,
 } from "@/services/api";
+import type { UnansweredQuestion } from "@/types/project";
 
 export function AdminDashboardPage() {
   return (
@@ -69,12 +71,24 @@ function UploadProjectSection() {
           onChange={(e) => setDescription(e.target.value)}
           className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
         />
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="text-sm text-[var(--text-secondary)]"
-        />
+        <div className="flex items-center gap-3">
+          <label
+            htmlFor="project-pdf-input"
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--surface-hover)]"
+          >
+            Escolher PDF…
+          </label>
+          <input
+            id="project-pdf-input"
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="sr-only"
+          />
+          <span className="truncate text-sm text-[var(--text-secondary)]">
+            {file ? file.name : "Nenhum arquivo selecionado"}
+          </span>
+        </div>
 
         {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
 
@@ -117,25 +131,20 @@ function ProjectsSection() {
 }
 
 function UnansweredQuestionsSection() {
-  const queryClient = useQueryClient();
   const { data: questions, isLoading } = useQuery({
     queryKey: ["unanswered-questions"],
     queryFn: listarPerguntasNaoRespondidas,
   });
 
-  const { mutate: revisar } = useMutation({
-    mutationFn: marcarPerguntaRevisada,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["unanswered-questions"] }),
-  });
-
   return (
     <section>
       <h2 className="mb-1 text-sm font-semibold text-[var(--text-primary)]">
-        Perguntas que o stakeholder não soube responder
+        Perguntas que o relatório não cobria
       </h2>
       <p className="mb-3 text-xs text-[var(--text-secondary)]">
-        Ficam aqui sempre que o agente verificador não achou fundamento no relatório para a
-        resposta — use para revisar e, se fizer sentido, complementar o relatório do projeto.
+        Ficam aqui sempre que o relatório não tinha informação pra responder — inclui tanto
+        invenções corrigidas quanto um "não sei" honesto do stakeholder. Responda pra virar
+        contexto do projeto, ou descarte se não fizer sentido guardar.
       </p>
 
       {isLoading && <p className="text-sm text-[var(--text-secondary)]">Carregando…</p>}
@@ -145,27 +154,62 @@ function UnansweredQuestionsSection() {
 
       <ul className="flex flex-col gap-2">
         {questions?.map((q) => (
-          <li
-            key={q.id}
-            className="flex items-start justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
-          >
-            <div className="min-w-0">
-              <p className="text-sm text-[var(--text-primary)]">{q.question}</p>
-              <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                Projeto: {q.project.title}
-                {q.user ? ` · ${q.user.email}` : ""}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => revisar(q.id)}
-              className="shrink-0 rounded-lg border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
-            >
-              Marcar revisada
-            </button>
-          </li>
+          <UnansweredQuestionItem key={q.id} question={q} />
         ))}
       </ul>
     </section>
+  );
+}
+
+function UnansweredQuestionItem({ question: q }: { question: UnansweredQuestion }) {
+  const queryClient = useQueryClient();
+  const [answer, setAnswer] = useState("");
+
+  const { mutate: responder, isPending: isAnswering } = useMutation({
+    mutationFn: (texto: string) => responderPergunta(q.id, texto),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["unanswered-questions"] }),
+  });
+
+  const { mutate: descartar, isPending: isDeleting } = useMutation({
+    mutationFn: () => deletarPergunta(q.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["unanswered-questions"] }),
+  });
+
+  return (
+    <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+      <p className="text-sm text-[var(--text-primary)]">{q.question}</p>
+      <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+        Projeto: {q.project.title}
+        {q.user ? ` · ${q.user.email}` : ""}
+      </p>
+
+      <div className="mt-2 flex items-end gap-2">
+        <textarea
+          rows={2}
+          placeholder="Escreva a resposta certa — ela vira contexto do relatório"
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          className="flex-1 resize-none rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+        />
+        <div className="flex shrink-0 flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => answer.trim() && responder(answer.trim())}
+            disabled={isAnswering || !answer.trim()}
+            className="rounded-lg bg-[var(--accent)] px-2 py-1 text-xs font-medium text-[var(--accent-contrast)] disabled:opacity-50"
+          >
+            Responder
+          </button>
+          <button
+            type="button"
+            onClick={() => descartar()}
+            disabled={isDeleting}
+            className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] disabled:opacity-50"
+          >
+            Descartar
+          </button>
+        </div>
+      </div>
+    </li>
   );
 }

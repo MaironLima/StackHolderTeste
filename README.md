@@ -58,7 +58,8 @@ npm run dev             # http://localhost:4000
 ```bash
 cd adk-service
 cp .env.example .env    # preencha OPENAI_API_KEY
-python -m venv .venv && source .venv/Scripts/activate
+python -m venv .venv 
+source .venv/Scripts/activate
 python -m pip install -r requirements.txt
 python main.py          # http://localhost:8000
 ```

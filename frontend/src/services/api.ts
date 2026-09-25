@@ -87,6 +87,11 @@ export async function reiniciarChat(projectId: string): Promise<void> {
   await api.post(`/projects/${projectId}/chat/reset`);
 }
 
+export async function solicitarFeedback(projectId: string): Promise<SendMessageResponse> {
+  const { data } = await api.post<SendMessageResponse>(`/projects/${projectId}/chat/feedback`);
+  return data;
+}
+
 // --- Admin ---------------------------------------------------------------
 
 export async function listarProjetosAdmin(): Promise<AdminProject[]> {
@@ -113,6 +118,15 @@ export async function listarPerguntasNaoRespondidas(): Promise<UnansweredQuestio
   return data;
 }
 
-export async function marcarPerguntaRevisada(id: string): Promise<void> {
-  await api.patch(`/admin/unanswered-questions/${id}/reviewed`);
+// Responder gera contexto: a resposta é anexada ao relatório do projeto.
+export async function responderPergunta(id: string, answer: string): Promise<UnansweredQuestion> {
+  const { data } = await api.patch<UnansweredQuestion>(`/admin/unanswered-questions/${id}/answer`, {
+    answer,
+  });
+  return data;
+}
+
+// Descarta a pergunta sem gerar nenhum contexto novo.
+export async function deletarPergunta(id: string): Promise<void> {
+  await api.delete(`/admin/unanswered-questions/${id}`);
 }

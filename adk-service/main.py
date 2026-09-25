@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-from agents.pipeline import run_pipeline  # noqa: E402  (depende do load_dotenv acima)
+from agents.pipeline import run_feedback, run_pipeline  # noqa: E402
 
 app = FastAPI(title="StakeholderVirtual ADK Service")
 
@@ -31,6 +31,15 @@ class AnswerRequest(BaseModel):
 class AnswerResponse(BaseModel):
     answer: str
     grounded: bool
+    coveredByReport: bool
+
+
+class FeedbackRequest(BaseModel):
+    history: List[HistoryTurn]
+
+
+class FeedbackResponse(BaseModel):
+    feedback: str
 
 
 @app.get("/health")
@@ -46,6 +55,12 @@ async def answer(payload: AnswerRequest):
         history=[turn.model_dump() for turn in payload.history],
     )
     return result
+
+
+@app.post("/feedback", response_model=FeedbackResponse)
+async def feedback(payload: FeedbackRequest):
+    text = await run_feedback(history=[turn.model_dump() for turn in payload.history])
+    return {"feedback": text}
 
 
 if __name__ == "__main__":

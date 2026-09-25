@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RotateCcw } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatWindow } from "@/components/chat/ChatWindow";
-import { enviarPergunta, obterChat, reiniciarChat } from "@/services/api";
+import { enviarPergunta, obterChat } from "@/services/api";
 
 export function ChatPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -45,27 +44,11 @@ export function ChatPage() {
     },
   });
 
-  const { mutate: reiniciar, isPending: isResetting } = useMutation({
-    mutationFn: () => reiniciarChat(projectId!),
-    onSuccess: () => {
-      queryClient.setQueryData(chatQueryKey, (old: any) => ({ ...old, messages: [] }));
-    },
-  });
+  const isBusy = isPending;
+  const hasMessages = (chat?.messages.length ?? 0) > 0;
 
   return (
     <div className="relative h-full">
-      <div className="absolute inset-x-0 top-0 z-10 flex h-12 items-center justify-end bg-gradient-to-b from-[var(--background)] via-[var(--background)]/90 to-transparent px-3">
-        <button
-          type="button"
-          onClick={() => reiniciar()}
-          disabled={isResetting}
-          title="Reiniciar chat (apaga as mensagens deste projeto)"
-          className="icon-btn"
-        >
-          <RotateCcw size={16} />
-        </button>
-      </div>
-
       <div className="h-full overflow-y-auto pt-16 pb-36">
         {isLoading ? (
           <p className="pt-10 text-center text-sm text-[var(--text-secondary)]">Carregando…</p>
@@ -74,7 +57,12 @@ export function ChatPage() {
         )}
       </div>
 
-      <ChatInput onSend={(pergunta) => perguntar(pergunta)} disabled={isPending} />
+      <ChatInput
+        onSend={(pergunta) => perguntar(pergunta)}
+        onFeedback={() => perguntar("sair")}
+        disabled={isBusy}
+        feedbackDisabled={!hasMessages}
+      />
     </div>
   );
 }

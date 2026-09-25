@@ -15,6 +15,7 @@ enum Role {
 enum MessageRole {
   USER
   STAKEHOLDER
+  FEEDBACK
 }
 
 model User {
@@ -80,7 +81,8 @@ model Message {
   @@index([chatId])
 }
 
-// Perguntas em que o agente verificador não achou fundamento no relatório.
+// Perguntas em que o relatório não tinha informação suficiente (mesmo
+// quando o stakeholder respondeu "não sei" de forma honesta, sem inventar).
 model UnansweredQuestion {
   id        String   @id @default(uuid())
   projectId String
@@ -89,7 +91,12 @@ model UnansweredQuestion {
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   question  String
   createdAt DateTime @default(now())
-  reviewed  Boolean  @default(false)
+
+  // Preenchidos quando o admin responde: a resposta é anexada ao
+  // reportText do projeto, virando contexto para perguntas futuras.
+  answer     String?
+  reviewed   Boolean  @default(false)
+  answeredAt DateTime?
 
   @@index([projectId])
 }

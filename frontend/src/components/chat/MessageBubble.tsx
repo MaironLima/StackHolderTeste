@@ -1,4 +1,4 @@
-import { Briefcase } from "lucide-react";
+import { Briefcase, GraduationCap } from "lucide-react";
 import type { ChatMessage } from "@/types/chat";
 
 interface MessageBubbleProps {
@@ -7,6 +7,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "USER";
+  const isFeedback = message.role === "FEEDBACK";
 
   if (isUser) {
     return (
@@ -18,13 +19,25 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     );
   }
 
+  // Stakeholder e feedback: sem bolha, texto corrido com avatar à esquerda.
   return (
     <div className="flex w-full items-start gap-3">
-      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--text-secondary)]">
-        <Briefcase size={15} />
+      <div
+        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+          isFeedback
+            ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+            : "bg-[var(--surface)] text-[var(--text-secondary)]"
+        }`}
+      >
+        {isFeedback ? <GraduationCap size={15} /> : <Briefcase size={15} />}
       </div>
 
       <div className="min-w-0 flex-1 pt-0.5">
+        {isFeedback && (
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+            Feedback da entrevista
+          </p>
+        )}
         <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--text-primary)]">
           {message.content}
         </p>

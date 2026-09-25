@@ -1,16 +1,19 @@
 import { LogOut, Shield } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
+import { NewChatButton } from "./NewChatButton";
 import { ThemeToggle } from "./ThemeToggle";
 
 /**
- * Barra fixa no topo. Mostra o e-mail do usuário logado, um atalho para
- * o hub de admin (só para quem é ADMIN) e logout.
+ * Barra fixa no topo. Mostra o botão de novo chat (só quando há um
+ * projeto aberto), o e-mail do usuário logado, um atalho para o hub de
+ * admin (só para quem é ADMIN) e logout.
  */
 export function TopBar() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const { projectId } = useParams<{ projectId?: string }>();
 
   async function handleLogout() {
     await logout();
@@ -25,6 +28,7 @@ export function TopBar() {
         </Link>
 
         <div className="flex items-center gap-1">
+          {projectId && <NewChatButton projectId={projectId} />}
           {user?.role === "ADMIN" && (
             <Link to="/admin" title="Hub de administração" className="icon-btn">
               <Shield size={17} />

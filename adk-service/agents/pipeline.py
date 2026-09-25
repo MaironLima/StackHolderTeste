@@ -60,10 +60,17 @@ Responda apenas com a fala do stakeholder, sem nenhum comentário fora do person
 """.strip()
 
 VERIFIER_INSTRUCTION = """
-Você é um verificador de fidelidade factual. Sua única tarefa é comparar a
-RESPOSTA RASCUNHO com o RELATÓRIO e decidir se as afirmações feitas nela são
-sustentadas pelo relatório (ou são inferências razoáveis e conservadoras a partir
-dele) ou se contêm invenção/alucinação.
+Você é um verificador de fidelidade factual. Sua tarefa tem duas partes:
+
+1. Decidir se as afirmações feitas na RESPOSTA RASCUNHO são sustentadas pelo
+   RELATÓRIO (ou são inferências razoáveis e conservadoras a partir dele) ou
+   se contêm invenção/alucinação — isso vai no campo `grounded`.
+2. Decidir, independente do que o rascunho disse, se o RELATÓRIO contém
+   informação suficiente para responder à pergunta do estudante — isso vai
+   no campo `covered_by_report`. Uma resposta honesta tipo "não sei, não
+   foi discutido" É fiel (`grounded=true`), mas normalmente significa que o
+   relatório NÃO cobre o assunto (`covered_by_report=false`) — são coisas
+   diferentes, avalie as duas separadamente.
 
 RELATÓRIO:
 {report_text}
@@ -74,19 +81,44 @@ PERGUNTA DO ESTUDANTE:
 RESPOSTA RASCUNHO DO STAKEHOLDER:
 {draft_answer}
 
-Se a resposta rascunho for fiel ao relatório: devolva grounded=true e repita a
+Se a resposta rascunho for fiel ao relatório: `grounded=true` e repita a
 resposta rascunho (ou uma versão levemente polida, sem mudar o conteúdo) em
-final_answer.
+`final_answer`.
 
-Se a resposta rascunho inventar algo que não está no relatório: devolva
-grounded=false e, em final_answer, escreva uma resposta curta e natural do
-stakeholder dizendo que não tem certeza sobre esse ponto específico / que isso
-não foi definido nas reuniões — mantendo o tom de personagem, não de sistema.
+Se a resposta rascunho inventar algo que não está no relatório: `grounded=false`
+e, em `final_answer`, escreva uma resposta curta e natural do stakeholder
+dizendo que não tem certeza sobre esse ponto específico / que isso não foi
+definido nas reuniões — mantendo o tom de personagem, não de sistema.
+
+Em `covered_by_report`, responda `false` sempre que o relatório não tiver
+informação pra essa pergunta específica (mesmo que a resposta tenha sido
+honesta), e `true` quando o relatório realmente cobre o assunto perguntado.
+""".strip()
+
+FEEDBACK_INSTRUCTION = """
+Você é um avaliador pedagógico especializado em entrevistas de Engenharia de
+Requisitos. Sua tarefa é analisar a conversa entre o estudante e o
+stakeholder virtual e dar um feedback claro, estruturado e construtivo.
+
+Sempre siga esta estrutura no feedback:
+
+1. **Pontos fortes** – destaque boas práticas do estudante.
+2. **Pontos a melhorar** – identifique falhas ou oportunidades.
+3. **Recomendações práticas** – dicas específicas e aplicáveis de como melhorar.
+4. **Avaliação geral** – uma breve conclusão motivadora sobre o desempenho.
+
+Se possível, use exemplos concretos das perguntas feitas para deixar o
+feedback mais útil. O tom deve ser construtivo, realista e encorajador, como
+um professor ajudando um aluno.
+
+TRANSCRIÇÃO DA CONVERSA:
+{history}
 """.strip()
 
 
 class VerificationResult(BaseModel):
     grounded: bool
+    covered_by_report: bool
     final_answer: str
 
 
@@ -151,17 +183,62 @@ async def run_pipeline(question: str, report_text: str, history: List[Dict[str, 
 
     if isinstance(verification, VerificationResult):
         grounded = verification.grounded
+        covered_by_report = verification.covered_by_report
         final_answer = verification.final_answer
     elif isinstance(verification, dict):
         grounded = bool(verification.get("grounded", False))
+        covered_by_report = bool(verification.get("covered_by_report", False))
         final_answer = verification.get("final_answer") or draft_answer
     else:
         # Defensivo: se o verificador não produziu um resultado utilizável,
-        # não arriscamos alucinação — tratamos como não fundamentado.
+        # não arriscamos alucinação — tratamos como não coberto pelo relatório.
         grounded = False
+        covered_by_report = False
         final_answer = (
             "Isso eu não sei te dizer com certeza, não é algo que ficou "
             "claro nas reuniões que participei."
         )
 
-    return {"answer": final_answer, "grounded": grounded}
+    return {"answer": final_answer, "grounded": grounded, "coveredByReport": covered_by_report}
+
+
+def _build_feedback_agent() -> LlmAgent:
+    return LlmAgent(
+        name="interview_feedback",
+        model=LiteLlm(model=MODEL_NAME),
+        instruction=FEEDBACK_INSTRUCTION,
+        output_key="feedback",
+    )
+
+
+async def run_feedback(history: List[Dict[str, str]]) -> str:
+    """Gera a avaliação pedagógica da entrevista inteira até agora."""
+    agent = _build_feedback_agent()
+    runner = InMemoryRunner(agent=agent, app_name=APP_NAME)
+
+    user_id = "adhoc-user"
+    session_id = str(uuid.uuid4())
+
+    await runner.session_service.create_session(
+        app_name=APP_NAME,
+        user_id=user_id,
+        session_id=session_id,
+        state={"history": _format_history(history)},
+    )
+
+    new_message = types.Content(
+        role="user", parts=[types.Part(text="Avalie a entrevista até agora.")]
+    )
+
+    async for _event in runner.run_async(
+        user_id=user_id, session_id=session_id, new_message=new_message
+    ):
+        pass
+
+    session = await runner.session_service.get_session(
+        app_name=APP_NAME, user_id=user_id, session_id=session_id
+    )
+
+    return session.state.get("feedback") or (
+        "Não foi possível gerar o feedback agora. Tente novamente em instantes."
+    )
