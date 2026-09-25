@@ -10,25 +10,49 @@ import path from "node:path";
 const pdfParse = require("pdf-parse");
 import { prisma } from "./prisma";
 import { uploadReportPdf } from "./services/storage.service";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+import { Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 async function main() {
+  const hashedPassword = await bcrypt.hash("password123", 10);
+
+  await prisma.user.upsert({
+    where: { email: "superadmin@gmail.com" },
+    update: {
+      role: Role.SUPERADMIN,
+    },
+    create: {
+      email: "superadmin@gmail.com",
+      passwordHash: hashedPassword,
+      role: Role.SUPERADMIN,
+    },
+  });
+
+  console.log("Superadmin cadastrado com sucesso!");
+
   const pdfsDir = path.join(__dirname, "..", "..", "pdfs");
-  const files = (await fs.readdir(pdfsDir)).filter((f) => f.toLowerCase().endsWith(".pdf"));
+  
+  try {
+    const files = (await fs.readdir(pdfsDir)).filter((f) => f.toLowerCase().endsWith(".pdf"));
 
-  for (const file of files) {
-    const buffer = await fs.readFile(path.join(pdfsDir, file));
-    const { text } = await pdfParse(buffer);
-    const pdfPath = await uploadReportPdf(buffer, file);
+    for (const file of files) {
+      const buffer = await fs.readFile(path.join(pdfsDir, file));
+      const { text } = await pdfParse(buffer);
+      const pdfPath = await uploadReportPdf(buffer, file);
 
-    const project = await prisma.project.create({
-      data: {
-        title: file.replace(/\.pdf$/i, ""),
-        pdfPath,
-        reportText: text,
-      },
-    });
+      const project = await prisma.project.create({
+        data: {
+          title: file.replace(/\.pdf$/i, ""),
+          pdfPath,
+          reportText: text,
+        },
+      });
 
-    console.log(`Projeto criado: ${project.title} (${project.id})`);
+      console.log(`Projeto criado: ${project.title} (${project.id})`);
+    }
+  } catch (error) {
+    console.log("Nenhum PDF processado (pasta /pdfs não encontrada ou vazia).");
   }
 }
 

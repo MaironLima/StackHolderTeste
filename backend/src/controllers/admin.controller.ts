@@ -7,11 +7,33 @@ const pdfParse = require("pdf-parse");
 import { prisma } from "../prisma";
 import { HttpError } from "../middleware/errorHandler";
 import { uploadReportPdf } from "../services/storage.service";
+import { askAdkAgent, updateAdkProjectIndex } from "../services/adkClient.service";
 
 const createProjectSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().trim().optional(),
 });
+
+const addAdminSchema = z.object({
+  email: z.string().email("E-mail inválido"),
+});
+
+export async function addAdmin(req: Request, res: Response) {
+  const { email } = addAdminSchema.parse(req.body);
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    throw new HttpError(404, "Usuário não encontrado com este e-mail");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { email },
+    data: { role: "ADMIN" },
+    select: { id: true, email: true, role: true },
+  });
+
+  res.json({ message: "Administrador adicionado com sucesso", user: updatedUser });
+}
 
 export async function listAdminProjects(_req: Request, res: Response) {
   const projects = await prisma.project.findMany({
@@ -64,19 +86,30 @@ export async function answerQuestion(req: Request, res: Response) {
   const question = await prisma.unansweredQuestion.findUnique({ where: { id } });
   if (!question) throw new HttpError(404, "Pergunta não encontrada");
 
-  const complemento = `\n\n[Complemento adicionado pelo admin]\nPergunta: ${question.question}\nResposta: ${answer}`;
+  // Formatação mais natural para o RAG (veja o ponto 2 abaixo)
+  const complemento = `\n\nInformações adicionais do stakeholder:\nSobre "${question.question}": ${answer}`;
   const project = await prisma.project.findUniqueOrThrow({ where: { id: question.projectId } });
+
+  const newReportText = project.reportText + complemento;
 
   const updated = await prisma.$transaction([
     prisma.project.update({
       where: { id: question.projectId },
-      data: { reportText: project.reportText + complemento },
+      data: { reportText: newReportText },
     }),
     prisma.unansweredQuestion.update({
       where: { id },
       data: { answer, reviewed: true, answeredAt: new Date() },
     }),
   ]);
+
+  // 🚀 NOTIFIQUE O SERVIÇO DE IA PARA REINDEXAR / ATUALIZAR OS VETORES
+  if (typeof updateAdkProjectIndex === "function") {
+    await updateAdkProjectIndex({
+      projectId: question.projectId,
+      reportText: newReportText,
+    });
+  }
 
   res.json(updated[1]);
 }

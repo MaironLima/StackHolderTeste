@@ -6,18 +6,89 @@ import {
   listarPerguntasNaoRespondidas,
   listarProjetosAdmin,
   responderPergunta,
+  adicionarAdmin, // <--- Adicione esta função na sua API de serviços
 } from "@/services/api";
 import type { UnansweredQuestion } from "@/types/project";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export function AdminDashboardPage() {
   return (
     <div className="mx-auto h-full w-full max-w-2xl overflow-y-auto px-4 pb-10 pt-20">
       <h1 className="mb-6 text-xl font-semibold text-[var(--text-primary)]">Hub de administração</h1>
 
+      <AddAdminSection />
       <UploadProjectSection />
       <ProjectsSection />
       <UnansweredQuestionsSection />
     </div>
+  );
+}
+
+function AddAdminSection() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const user = useAuthStore((s) => s.user);
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: (emailAdmin: string) => adicionarAdmin(emailAdmin),
+    onSuccess: () => {
+      setMessage({ text: "Administrador adicionado com sucesso!", type: "success" });
+      setEmail("");
+    },
+    onError: (err: any) => {
+      setMessage({
+        text: err?.response?.data?.erro ?? "Falha ao adicionar administrador.",
+        type: "error",
+      });
+    },
+  });
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+    if (!email.trim()) return;
+    mutate(email.trim());
+  }
+
+  return (
+    (user?.role === "SUPERADMIN" && (<section className="mb-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <h2 className="mb-1 text-sm font-semibold text-[var(--text-primary)]">
+        Promover novo Administrador
+      </h2>
+      <p className="mb-3 text-xs text-[var(--text-secondary)]">
+        Exclusivo para SuperAdmin. Insira o e-mail de um usuário cadastrado para dar privilégios de administrador.
+      </p>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <input
+            type="email"
+            required
+            placeholder="email@exemplo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+          />
+          <button
+            type="submit"
+            disabled={isPending || !email.trim()}
+            className="shrink-0 rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-contrast)] disabled:opacity-60"
+          >
+            {isPending ? "Promovendo…" : "Adicionar Admin"}
+          </button>
+        </div>
+
+        {message && (
+          <p
+            className={`text-xs ${
+              message.type === "success" ? "text-emerald-500" : "text-[var(--danger)]"
+            }`}
+          >
+            {message.text}
+          </p>
+        )}
+      </form>
+    </section>))
   );
 }
 

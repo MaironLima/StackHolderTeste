@@ -13,6 +13,11 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+export async function adicionarAdmin(email: string) {
+  const { data } = await api.post("/admin/add-admin", { email });
+  return data;
+}
+
 // Refresh automático: se uma chamada vier 401, tenta renovar o access
 // token uma vez (via cookie de refresh) e repete a requisição original.
 // Evita deslogar o usuário só porque o access token (curto, 15min) expirou.

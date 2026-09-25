@@ -29,7 +29,7 @@ export function TopBar() {
 
         <div className="flex items-center gap-1">
           {projectId && <NewChatButton projectId={projectId} />}
-          {user?.role === "ADMIN" && (
+          {(user?.role === "ADMIN" || user?.role === "SUPERADMIN")  && (
             <Link to="/admin" title="Hub de administração" className="icon-btn">
               <Shield size={17} />
             </Link>

@@ -1,13 +1,14 @@
 import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "../utils/asyncHandler";
-import { requireAdmin, requireAuth } from "../middleware/auth";
+import { requireAdmin, requireAuth, requireSuperAdmin } from "../middleware/auth";
 import {
   answerQuestion,
   createProject,
   deleteQuestion,
   listAdminProjects,
   listUnansweredQuestions,
+  addAdmin,
 } from "../controllers/admin.controller";
 
 // Arquivo fica só em memória (buffer) — nunca é gravado em disco local,
@@ -28,6 +29,7 @@ export const adminRouter = Router();
 
 adminRouter.use(requireAuth, requireAdmin);
 
+adminRouter.post("/add-admin", requireSuperAdmin, addAdmin);
 adminRouter.get("/projects", asyncHandler(listAdminProjects));
 adminRouter.post("/projects", upload.single("pdf"), asyncHandler(createProject));
 adminRouter.get("/unanswered-questions", asyncHandler(listUnansweredQuestions));

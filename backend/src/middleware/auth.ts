@@ -12,6 +12,13 @@ declare global {
   }
 }
 
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user || req.user.role !== "SUPERADMIN") {
+    throw new HttpError(403, "Acesso permitido apenas para SuperAdmin");
+  }
+  next();
+}
+
 // Lê o access token do cookie httpOnly. Se estiver expirado/ausente, o
 // frontend deve chamar POST /auth/refresh (que usa o cookie de refresh)
 // e tentar a requisição original de novo.
@@ -29,7 +36,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
 }
 
 export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
-  if (req.user?.role !== Role.ADMIN) {
+  if (!req.user ||(req.user?.role !== Role.ADMIN && req.user?.role !== "SUPERADMIN")) {
     throw new HttpError(403, "Acesso restrito a administradores");
   }
   next();

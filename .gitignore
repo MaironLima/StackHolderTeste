@@ -187,3 +187,6 @@ backend/prisma/*.db
 
 # PDFs enviados localmente quando STORAGE_DRIVER=local (backend/)
 backend/uploads/
+
+
+backend/prisma/migrations
