@@ -7,7 +7,6 @@ const pdfParse = require("pdf-parse");
 import { prisma } from "../prisma";
 import { HttpError } from "../middleware/errorHandler";
 import { uploadReportPdf } from "../services/storage.service";
-import { askAdkAgent, updateAdkProjectIndex } from "../services/adkClient.service";
 
 const createProjectSchema = z.object({
   title: z.string().trim().min(1),
@@ -86,7 +85,6 @@ export async function answerQuestion(req: Request, res: Response) {
   const question = await prisma.unansweredQuestion.findUnique({ where: { id } });
   if (!question) throw new HttpError(404, "Pergunta não encontrada");
 
-  // Formatação mais natural para o RAG (veja o ponto 2 abaixo)
   const complemento = `\n\nInformações adicionais do stakeholder:\nSobre "${question.question}": ${answer}`;
   const project = await prisma.project.findUniqueOrThrow({ where: { id: question.projectId } });
 
@@ -102,14 +100,6 @@ export async function answerQuestion(req: Request, res: Response) {
       data: { answer, reviewed: true, answeredAt: new Date() },
     }),
   ]);
-
-  // 🚀 NOTIFIQUE O SERVIÇO DE IA PARA REINDEXAR / ATUALIZAR OS VETORES
-  if (typeof updateAdkProjectIndex === "function") {
-    await updateAdkProjectIndex({
-      projectId: question.projectId,
-      reportText: newReportText,
-    });
-  }
 
   res.json(updated[1]);
 }
