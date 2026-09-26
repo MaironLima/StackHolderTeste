@@ -66,6 +66,7 @@ body {
 body {
   background-color: var(--background);
   color: var(--text-primary);
+}
 
 @layer components {
   .icon-btn {
